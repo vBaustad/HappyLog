@@ -21,7 +21,7 @@ HappyLog.updateUI = HappyLog.updateUI or function() end
 local secretKey = "HappyLogHash" -- Change this to something unique
 
 -- Set debug mode
-HappyLogDB.debug = true
+HappyLogDB.debug = false
 
 -- Sound notification
 local function playNotificationSound()
@@ -93,8 +93,6 @@ local function handleAddonMessage(event, text, sender, ...)
         return
     end
 
-    debugPrint("|cffffd700[HappyLog]:|r Processing addon message:", parsedText)
-
     -- Now correctly extract the name and other details
     local name, guild, level, race, class, zone, lastMessage = strsplit(";", parsedText)
 
@@ -130,7 +128,6 @@ local function handleAddonMessage(event, text, sender, ...)
             message = lastMessage or "",
         })
 
-        debugPrint("About to call HappyLog.updateUI:", HappyLog.updateUI)
         if HappyLog.updateUI then
             HappyLog.updateUI()
             debugPrint("HappyLog.updateUI was successfully called")
@@ -178,7 +175,6 @@ frame:SetScript("OnEvent", function(self, event, ...)
         if HappyLogDB.debug == true then
             level = 60
         end
-        print(level)
         -- Check if the player reached level 60
         if level == 60 then
             print("Congratulations on reaching level 60!")
@@ -212,12 +208,8 @@ frame:SetScript("OnEvent", function(self, event, ...)
                 SendChatMessage(safeMessage, "CHANNEL", nil, channelIndex)
                 debugPrint("Sent addon message to channel:", channelName)
             else
-                print("|cffff0000[HappyLog]:|r Channel not found. Make sure you're connected.")
+                debugPrint("|cffff0000[HappyLog]:|r Channel not found. Make sure you're connected.")
             end
-
-            -- Send the addon message
-            --C_ChatInfo.SendAddonMessage("HappyLog", serialized, "GUILD") -- Send to your guild
-            --debugPrint("Sent addon message:", serialized)
         end
 
     elseif event == "CHAT_MSG_SYSTEM" then
@@ -235,7 +227,6 @@ frame:SetScript("OnEvent", function(self, event, ...)
         -- Track the player's last chat message
         trackPlayerMessage(event, ...)
     elseif event == "PLAYER_LOGIN" then
-        print("login")
         joinAddonChannel()
     end
 end)
@@ -245,7 +236,6 @@ frame:RegisterEvent("PLAYER_LOGIN")
 frame:RegisterEvent("PLAYER_LEVEL_UP")
 frame:RegisterEvent("CHAT_MSG_SYSTEM")
 frame:RegisterEvent("CHAT_MSG_CHANNEL")
--- Register chat events
 frame:RegisterEvent("CHAT_MSG_SAY")
 frame:RegisterEvent("CHAT_MSG_YELL")
 frame:RegisterEvent("CHAT_MSG_PARTY")
@@ -268,21 +258,27 @@ SLASH_TESTLEVELUP1 = "/hllvl"
 
 
 SlashCmdList["TESTLEVELUP"] = function(level)
-    level = tonumber(level) or 60 -- Default to level 60 if no argument is provided
-    print("|cffffd700[Test]:|r Simulating level-up to level", level)
-    -- Trigger your level-up logic
-    frame:GetScript("OnEvent")(frame, "PLAYER_LEVEL_UP", level)
+    if HappyLogDB.debug then
+        level = tonumber(level) or 60 -- Default to level 60 if no argument is provided
+        print("|cffffd700[Test]:|r Simulating level-up to level", level)
+        -- Trigger your level-up logic
+        frame:GetScript("OnEvent")(frame, "PLAYER_LEVEL_UP", level)
+    end
 end
 
 SlashCmdList["CONFIRMEDSIXTIES"] = function()
-    debugPrint("Confirmed Sixties:")
-    for _, name in ipairs(HappyLogDB.confirmedSixties) do
-        debugPrint("-", name)
+    if HappyLogDB.debug then
+        debugPrint("Confirmed Sixties:")
+        for _, name in ipairs(HappyLogDB.confirmedSixties) do
+            debugPrint("-", name)
+        end
     end
 end
 
 SlashCmdList["TESTLASTMSG"] = function()
-    debugPrint("Last Message: " .. HappyLogDB.lastPlayerMessage) 
+    if HappyLogDB.debug then
+        debugPrint("Last Message: " .. HappyLogDB.lastPlayerMessage) 
+    end
 end
 
 SlashCmdList["HAPPYLOGSETTINGS"] = function(msg)
@@ -295,50 +291,56 @@ SlashCmdList["HAPPYLOGSETTINGS"] = function(msg)
 end
 
 SlashCmdList["TESTSYSTEMMSG"] = function()
-    sendTestSystemMessage()
+    if HappyLogDB.debug then
+        sendTestSystemMessage()
+    end
 end
 
 SlashCmdList["HAPPYLOG"] = function()
-    debugPrint("In /hltest command. HappyLog:", HappyLog, "HappyLog.updateUI:", HappyLog.updateUI)
+    if HappyLogDB.debug then
+        debugPrint("In /hltest command. HappyLog:", HappyLog, "HappyLog.updateUI:", HappyLog.updateUI)
 
-    if not HappyLog.updateUI then
-        debugPrint("Error: HappyLog.updateUI is nil before calling handleAddonMessage.")
-        return
+        if not HappyLog.updateUI then
+            debugPrint("Error: HappyLog.updateUI is nil before calling handleAddonMessage.")
+            return
+        end
+
+        local testData = {
+            name = "TestPlayer",
+            guild = "TestGuild",
+            level = 60,
+            race = "Orc",
+            class = "Warrior",
+            zone = "Orgrimmar",
+            message = "This is a test message!",
+        }
+        local serialized = string.format("%s;%s;%d;%s;%s;%s;%s",
+            testData.name,
+            testData.guild,
+            testData.level,
+            testData.race,
+            testData.class,
+            testData.zone,
+            testData.message
+        )
+        handleAddonMessage(nil, nil, "HappyLog", serialized, nil, "Tester")
     end
-
-    local testData = {
-        name = "TestPlayer",
-        guild = "TestGuild",
-        level = 60,
-        race = "Orc",
-        class = "Warrior",
-        zone = "Orgrimmar",
-        message = "This is a test message!",
-    }
-    local serialized = string.format("%s;%s;%d;%s;%s;%s;%s",
-        testData.name,
-        testData.guild,
-        testData.level,
-        testData.race,
-        testData.class,
-        testData.zone,
-        testData.message
-    )
-    handleAddonMessage(nil, nil, "HappyLog", serialized, nil, "Tester")
 end
 
 SlashCmdList["HAPPYLOGCLEAR"] = function()
-    -- Clear the HappyLogDB.data table
-    if HappyLogDB and HappyLogDB.data then
-        wipe(HappyLogDB.data) -- Efficiently clears the table
-        debugPrint("|cffffd700[HappyLog]:|r Data table has been cleared.")
-    else
-        debugPrint("|cffffd700[HappyLog]:|r No data to clear.")
-    end
+    if HappyLogDB.debug then
+        -- Clear the HappyLogDB.data table
+        if HappyLogDB and HappyLogDB.data then
+            wipe(HappyLogDB.data) -- Efficiently clears the table
+            debugPrint("|cffffd700[HappyLog]:|r Data table has been cleared.")
+        else
+            debugPrint("|cffffd700[HappyLog]:|r No data to clear.")
+        end
 
-    -- Update the UI
-    if HappyLog.updateUI then
-        HappyLog.updateUI()
+        -- Update the UI
+        if HappyLog.updateUI then
+            HappyLog.updateUI()
+        end
     end
 end
 
@@ -347,7 +349,6 @@ SlashCmdList["HAPPYLOGDEBUG"] = function(msg)
         print("|cffff0000[HappyLog]:|r Error - HappyLogDB is not initialized.")
         return
     end
-
     -- Toggle debug mode
     if HappyLogDB.debug then
         HappyLogDB.debug = false

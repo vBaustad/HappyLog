@@ -8,7 +8,7 @@ local default_settings = {
 }
 
 local defaultColumns = {
-    { name = "Name", width = 60},
+    { name = "Name", width = 100},
     { name = "Guild", width = 100},
     { name = "Class", width = 60},
     { name = "Zone", width = 60},
@@ -108,7 +108,6 @@ end
 
 -- Create the toggle button
 local function createToggleButton(titleFrame, mainFrame)
-    debugPrint("create togglebutton")
     local toggleButton = CreateFrame("Button", "HappyLogToggleButton", titleFrame, "UIPanelButtonTemplate")
     toggleButton:SetSize(30, 15)
 
@@ -135,7 +134,6 @@ local function createToggleButton(titleFrame, mainFrame)
 end
 
 local function createTitleFrame(mainFrame)
-    debugPrint("create titleframe")
     -- Create the title frame
     local titleFrame = CreateFrame("Frame", nil, UIParent, "BackdropTemplate")
     titleFrame:SetHeight(20)
@@ -174,7 +172,6 @@ local function createTitleFrame(mainFrame)
         HappyLogDB.pos_y = yOfs
         HappyLogDB.point = point
         HappyLogDB.relativePoint = relativePoint
-        debugPrint("Saved position:", point, xOfs, yOfs)
     end)
 
     return titleFrame
@@ -235,7 +232,6 @@ end
 
 -- Create the resize button
 local function createResizeButton(parent)
-    debugPrint("create resizebutton")
     local resizeButton = CreateFrame("Button", nil, parent)
     resizeButton:SetSize(16, 16)
     resizeButton:SetPoint("BOTTOMRIGHT", parent, "BOTTOMRIGHT", -4, 4)
@@ -272,7 +268,6 @@ local function setupRowEntries(parent, data)
     local parentWidth = parent:GetWidth() - 10 -- Adjust for padding
     local contentHeight = #data * rowHeight
     local visibleHeight = parent:GetHeight() - 45 -- Space for visible rows
-    debugPrint("Number of rows:", #data)
 
     -- Clear existing rows and content
     if parent.scrollFrame then
@@ -283,7 +278,7 @@ local function setupRowEntries(parent, data)
     -- Create the scroll frame
     local scrollFrame = CreateFrame("ScrollFrame", nil, parent, "UIPanelScrollFrameTemplate")
     scrollFrame:SetSize(parentWidth, visibleHeight)
-    scrollFrame:SetPoint("TOPLEFT", parent, "TOPLEFT", 5, -40)
+    scrollFrame:SetPoint("TOPLEFT", parent, "TOPLEFT", 5, -37)
     parent.scrollFrame = scrollFrame
 
     -- Create the content frame inside the scroll frame
@@ -389,8 +384,6 @@ end
 
 -- Initialize UI
 local function initializeUI()
-    debugPrint("HappyLog_GUI: Initializing UI...")
-
     -- Ensure columns are initialized
     if not HappyLog.columns or type(HappyLog.columns) ~= "table" then
         debugPrint("HappyLog.columns is nil or invalid! Restoring defaults.")
@@ -416,10 +409,7 @@ local function initializeUI()
     end
 
     -- Define updateUI to refresh the data
-    debugPrint("Defining HappyLog.updateUI...")
     HappyLog.updateUI = function()
-        debugPrint("HappyLog.updateUI: Updating UI")
-
         -- Refresh headers
         if mainFrame.headerFrame then
             headerFrame:Hide()
@@ -430,11 +420,7 @@ local function initializeUI()
         -- Refresh rows     
         setupRowEntries(mainFrame, HappyLogDB.data)
     end
-
-    -- Load existing data on login
-    debugPrint("Loading rows from saved data...")
     HappyLog.updateUI()
-    debugPrint("HappyLog.updateUI is now defined:", type(HappyLog.updateUI))
 end
 
 -- Wait for PLAYER_LOGIN to initialize saved variables

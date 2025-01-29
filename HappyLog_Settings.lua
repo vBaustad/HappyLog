@@ -102,7 +102,6 @@ function HappyLog_Settings.createSettingsPanel()
         for i = 1, emptyCount do
             table.insert(HappyLogDB.columnOrder, nil) -- Append empty placeholders
         end
-
         -- Sync HappyLog.columns with the new order
         updateColumnsOrder()
     end
