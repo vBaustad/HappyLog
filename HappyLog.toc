@@ -1,0 +1,12 @@
+## Interface: 100007
+## Title: HappyLog
+## Notes: Tracks players who reach level 60 and stores their information.
+## Author: ChiefMango
+## Version: 0.1
+## SavedVariables: HappyLogDB, HappyLog
+
+HappyLog.lua
+HappyLog_Settings.lua
+HappyLog_GUI.lua
+
+
