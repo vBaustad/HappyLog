@@ -1,56 +1,70 @@
-if not HappyLogDB then
-    HappyLogDB = {}
-end
+local AceComm = LibStub("AceComm-3.0")
+local addonName = "HappyLog"
+
+-- Ensure the global namespace exists
 if not HappyLog then
     HappyLog = {}
 end
-
--- Debug helper
-local function debugPrint(...)
-    if HappyLogDB and HappyLogDB.debug then
-        print("|cffffd700[HappyLog Debug]:|r", ...)
-    end
+-- Ensure the saved variable table exists
+if not HappyLogDB then
+    HappyLogDB = {}
 end
 
--- Initialize HappyLogDB.data as an empty table if it doesn't exist
+-- Ensure all sub-tables exist to prevent nil errors
 HappyLogDB.data = HappyLogDB.data or {}
 HappyLogDB.confirmedSixties = HappyLogDB.confirmedSixties or {}
-HappyLogDB.lastPlayerMessage = HappyLogDB.lastPlayerMessage or {}
+HappyLogDB.lastPlayerMessage = HappyLogDB.lastPlayerMessage or ""
+HappyLogDB.columns = HappyLogDB.columns or {}
+HappyLogDB.columnOrder = HappyLogDB.columnOrder or {}
+HappyLogDB.Minimized = HappyLogDB.Minimized or false
+HappyLogDB.minimap = HappyLogDB.minimap or {}
+HappyLogDB.selectedSoundID = HappyLogDB.selectedSoundID
+HappyLogDB.debug = false
+HappyLog_Settings = {}
 C_ChatInfo.RegisterAddonMessagePrefix("HappyLog")
 HappyLog.updateUI = HappyLog.updateUI or function() end
-local secretKey = "HappyLogHash" -- Change this to something unique
 
--- Set debug mode
-HappyLogDB.debug = false
-
--- Sound notification
-local function playNotificationSound()
-    PlaySound(888)
-end
-
-local function capitalizeFirstLetter(str)
-    if not str or str == "" then
-        return ""
-    end
-    return str:sub(1, 1):upper() .. str:sub(2):lower()
-end
+local addonChannelName = "happylogalertschannel"
+local receivedNonces = {}
+local secretKey = "HappyLogSecretKey489!" -- Change this to a unique key
 
 local function generateHash(message)
     local hash = 0
     for i = 1, #message do
         local byte = string.byte(message, i)
-        hash = (hash + byte * i) % 100000
+        hash = (hash + byte * i) % 100000  -- Modulo keeps hash manageable
     end
     return tostring(hash)
 end
 
+local function JoinAddonChannel()
+    local channelIndex = GetChannelName(addonChannelName)
+    if channelIndex == 0 then
+        JoinChannelByName(addonChannelName, nil, DEFAULT_CHAT_FRAME:GetID(), false)
+        DebugPrint("|cffffd700[HappyLog]:|r Joined custom addon channel:", addonChannelName)
+    else
+        DebugPrint("|cffffd700[HappyLog]:|r Already in channel:", addonChannelName)
+    end
+end
+
+
+local function sendAddonMessage(serialized)
+    local channelIndex = GetChannelName(addonChannelName)
+
+    if channelIndex and channelIndex > 0 then        
+        local hash = generateHash(serialized .. secretKey)
+        local safeMessage = "HappyLog:" .. hash .. ":" .. serialized
+        SendChatMessage(safeMessage, "CHANNEL", nil, channelIndex)
+    else
+        DebugPrint("|cffff0000[HappyLog]:|r Channel not found. Make sure you're connected.")
+    end
+end
+
 local function onChatMsgSystem(event, message)
     if not message then
-        debugPrint("Error: Received system message is nil.")
+        DebugPrint("Error: Received system message is nil.")
         return
     end
-
-    debugPrint("Received system message:", message)
 
     -- Your processing logic here
     local name = message:match("^(%S+) has reached level 60!")
@@ -64,91 +78,43 @@ local function onChatMsgSystem(event, message)
                 return -- Name already exists; do nothing
             end
         end
-
         -- Add the name to the array
         table.insert(HappyLogDB.confirmedSixties, name)
-        debugPrint("Added to confirmedSixties:", name)
     end
 end
 
-local function handleAddonMessage(event, text, sender, ...)
-    local channelName = "happylogalertschannel"
-    local _, _, _, _, _, _, _, channelIndex, receivedChannel = ...
+local function handleAddonMessage(event, text, sender, ...) 
+    -- Extract player data
+    local name, guild, level, race, class, zone, lastMessage = strsplit(";", text)
 
-    -- Ensure the message is from our custom channel
-    if receivedChannel and receivedChannel:lower() ~= channelName then
-        return
-    end
-    
-    local prefix, receivedHash, parsedText = text:match("^(HappyLog):(%d+):(.*)$")
-    if not prefix or not receivedHash or not parsedText then
-        debugPrint("|cffffa500[HappyLog]:|r Ignoring manually typed message (incorrect format):", text)
-        return
-    end
-
-    local expectedHash = generateHash(parsedText .. secretKey)
-
-    if receivedHash ~= expectedHash then
-        debugPrint("|cffff0000[HappyLog]:|r Invalid hash! Message ignored.")
-        return
-    end
-
-    -- Now correctly extract the name and other details
-    local name, guild, level, race, class, zone, lastMessage = strsplit(";", parsedText)
-
-    -- Trim name to ensure no extra spaces
-    local trimmedName = name:match("^%s*(.-)%s*$"):lower()
-
-    level = tonumber(level)
-
-    if type(HappyLogDB.data) ~= "table" then
-        debugPrint("Error: HappyLogDB.data is not a table!")
-        HappyLogDB.data = {}
-    end
-  
-
-    -- Check if the name exists in the confirmedSixties array
+    -- Add to data if confirmed
     local existsInConfirmedSixties = false
     for _, confirmedName in ipairs(HappyLogDB.confirmedSixties or {}) do
-        local trimmedConfirmed = confirmedName:match("^%s*(.-)%s*$"):lower()
-        if trimmedConfirmed == trimmedName then
+        if confirmedName == name then
             existsInConfirmedSixties = true
-            debugPrint("Character exists in sixties table:", trimmedConfirmed)
             break
         end
     end
 
     if existsInConfirmedSixties then
-        -- Add to data table
         table.insert(HappyLogDB.data, {
-            name = capitalizeFirstLetter(name),
-            guild = capitalizeFirstLetter(guild or "No Guild"),
-            class = capitalizeFirstLetter(class),
-            zone = capitalizeFirstLetter(zone),
+            name = CapitalizeFirstLetter(name),
+            guild = guild and CapitalizeFirstLetter(guild) or "No Guild",
+            class = CapitalizeFirstLetter(class),
+            zone = CapitalizeFirstLetter(zone),
             message = lastMessage or "",
         })
 
+        -- Update UI
         if HappyLog.updateUI then
             HappyLog.updateUI()
-            debugPrint("HappyLog.updateUI was successfully called")
-        else
-            debugPrint("Error: HappyLog.updateUI is nil! Possible initialization issue.")
+            DebugPrint("|cffffd700[HappyLog]:|r Updated UI with new player data.")
         end
-        -- Play sound
-        playNotificationSound()
-    else 
-        debugPrint("Character does not exists in sixties table")     
-    end  
-end
 
-local function stripRealm(name)
-    return name:match("^(.-)-") or name -- Strips the realm name if present
-end
-
-local function trackPlayerMessage(event, text, playerName, ...)
-    if stripRealm(playerName) == UnitName("player") then
-        HappyLogDB.lastPlayerMessage = text
-        debugPrint("Updated last player message:", HappyLogDB.lastPlayerMessage)
+        -- Play notification sound
+        PlayNotificationSound(HappyLogDB.selectedSoundID)
+    else
+        DebugPrint("|cffff0000[HappyLog]:|r Character does not exist in confirmedSixties. Ignoring message.")
     end
 end
 
@@ -159,75 +125,120 @@ local function sendTestSystemMessage()
     onChatMsgSystem("CHAT_MSG_SYSTEM", testMessage)
 end
 
-local function joinAddonChannel()
-    local channelName = "happylogalertschannel"
-    JoinChannelByName(channelName, nil, nil, false)
-    debugPrint("|cffffd700[HappyLog]:|r Joined or already in channel:", channelName)
-end
-
 local frame = CreateFrame("Frame")
 
 frame:SetScript("OnEvent", function(self, event, ...)
     if event == "PLAYER_LEVEL_UP" then
         local level = ...
-        debugPrint("Player leveled up to:", level)
-
+        DebugPrint("Player leveled up to:", level)
+    
         if HappyLogDB.debug == true then
             level = 60
         end
+    
         -- Check if the player reached level 60
         if level == 60 then
-            print("Congratulations on reaching level 60!")
-
+            print("|cffffd700[HappyLog]:|r Congratulations on reaching level 60!")
+    
             -- Gather player information
             local name = UnitName("player") -- Player's name
             local guildName = GetGuildInfo("player") or "No Guild" -- Player's guild name
             local _, race = UnitRace("player") -- Player's race
             local _, class = UnitClass("player") -- Player's class
             local zone = GetZoneText() -- Current zone name
-            local message = HappyLogDB.lastPlayerMessage -- Optional custom message
+            local message = HappyLogDB.lastPlayerMessage or "No Message" -- Custom last message
+            
+            local timestamp = time() -- Current Unix timestamp
+            print(timestamp)
+            local nonce = tostring(math.random(10000, 99999)) -- Unique random number
 
             -- Serialize the data
-            local serialized = string.format("%s;%s;%d;%s;%s;%s;%s",
+            local serialized = string.format("%s;%s;%d;%s;%s;%s;%s;%s;%s",
                 name,
                 guildName,
                 level,
                 race,
                 class,
                 zone,
-                message
+                message,
+                timestamp,
+                nonce
             )
-
-            local channelName = "happylogalertschannel"
-            local channelIndex = GetChannelName(channelName)
-            
-            if channelIndex and channelIndex > 0 then
-                local hash = generateHash(serialized .. secretKey)
-                local safeMessage = "HappyLog:" .. hash .. ":" .. serialized
-
-                SendChatMessage(safeMessage, "CHANNEL", nil, channelIndex)
-                debugPrint("Sent addon message to channel:", channelName)
-            else
-                debugPrint("|cffff0000[HappyLog]:|r Channel not found. Make sure you're connected.")
-            end
+            sendAddonMessage(serialized)            
         end
-
     elseif event == "CHAT_MSG_SYSTEM" then
         local message = ...
         onChatMsgSystem(event, message)
     elseif event == "CHAT_MSG_CHANNEL" then
         local text, sender, _, _, _, _, _, channelIndex, channelName = ...
 
-        -- Check if this message is from our custom channel
-        if channelName and channelName:lower() == "happylogalertschannel" then
-            debugPrint("|cffffd700[HappyLog]:|r Received message in correct channel:", text)
-            handleAddonMessage(event, text, sender, ...)
+        -- Ensure message comes from the correct channel
+        if channelName and channelName:lower() == addonChannelName then
+            DebugPrint("|cffffd700[HappyLog]:|r Received message in correct channel:", text)
+    
+            -- Extract Hash & Message
+            local prefix, receivedHash, parsedText = text:match("^(HappyLog):(%d+):(.*)$")
+            if not prefix or not receivedHash or not parsedText then
+                DebugPrint("|cffffa500[HappyLog]:|r Ignoring manually typed message (incorrect format):", text)
+                return
+            end
+    
+            -- Extract player data and nonce
+            local name, guild, level, race, class, zone, lastMessage, timestamp, nonce = strsplit(";", parsedText)
+    
+            -- Ensure timestamp is valid and not too old
+            local currentTime = time()
+            if not timestamp or tonumber(timestamp) < currentTime - 30 then
+                DebugPrint("|cffff0000[HappyLog]:|r Message expired or invalid timestamp. Ignoring.")
+                return
+            end
+    
+            timestamp = tonumber(timestamp) -- Convert to number
+
+            -- Allow messages up to 2 minutes old
+            if timestamp < currentTime - 120 then
+                DebugPrint("|cffff0000[HappyLog]:|r Message expired (older than 2 minutes). Ignoring.")
+                return
+            end
+
+            -- Prevent Replay Attacks - Check Nonce
+            if receivedNonces[nonce] then
+                DebugPrint("|cffff0000[HappyLog]:|r Duplicate message detected! Ignoring replayed message.")
+                return
+            end
+    
+            -- Store the nonce to prevent replay attacks
+            receivedNonces[nonce] = true
+    
+            -- Store the nonce to prevent replay attacks
+            table.insert(receivedNonces, nonce)
+            CleanOldNonces(receivedNonces) -- Keep the table size under control
+
+            -- Recalculate the Hash using the same nonce & timestamp
+            local expectedHash = generateHash(parsedText .. secretKey)
+    
+            -- Compare Hashes
+            if receivedHash ~= expectedHash then
+                DebugPrint("|cffff0000[HappyLog]:|r Invalid hash! Message ignored.")
+                return
+            end
+    
+            -- Hash is valid, process message
+            DebugPrint("|cffffd700[HappyLog]:|r Valid addon message received from", sender, ":", parsedText)
+    
+            -- Process Addon Message Securely (Message is Now Verified)
+            handleAddonMessage(event, parsedText, sender, ...)
         end
     elseif event:match("^CHAT_MSG") then
         -- Track the player's last chat message
-        trackPlayerMessage(event, ...)
+        TrackPlayerMessage(event, ...)
     elseif event == "PLAYER_LOGIN" then
-        joinAddonChannel()
+        JoinAddonChannel()
+    elseif event == "ADDON_LOADED" then
+        -- Call the function to create and display the minimap button
+        if CreateMinimapButton then
+            CreateMinimapButton()
+        end
     end
 end)
 
@@ -244,6 +255,7 @@ frame:RegisterEvent("CHAT_MSG_RAID")
 frame:RegisterEvent("CHAT_MSG_RAID_LEADER")
 frame:RegisterEvent("CHAT_MSG_WHISPER")
 frame:RegisterEvent("CHAT_MSG_GUILD")
+frame:RegisterEvent("ADDON_LOADED")
 
 -- Slash command for testing
 SLASH_HAPPYLOG1 = "/hltest"
@@ -268,16 +280,16 @@ end
 
 SlashCmdList["CONFIRMEDSIXTIES"] = function()
     if HappyLogDB.debug then
-        debugPrint("Confirmed Sixties:")
+        DebugPrint("Confirmed Sixties:")
         for _, name in ipairs(HappyLogDB.confirmedSixties) do
-            debugPrint("-", name)
+            DebugPrint("-", name)
         end
     end
 end
 
 SlashCmdList["TESTLASTMSG"] = function()
     if HappyLogDB.debug then
-        debugPrint("Last Message: " .. HappyLogDB.lastPlayerMessage) 
+        DebugPrint("Last Message: " .. HappyLogDB.lastPlayerMessage) 
     end
 end
 
@@ -286,7 +298,7 @@ SlashCmdList["HAPPYLOGSETTINGS"] = function(msg)
     if category then
         Settings.OpenToCategory(category)
     else
-        debugPrint("HappyLog: Unable to open settings. The category might not be registered yet.")
+        DebugPrint("HappyLog: Unable to open settings. The category might not be registered yet.")
     end
 end
 
@@ -298,10 +310,10 @@ end
 
 SlashCmdList["HAPPYLOG"] = function()
     if HappyLogDB.debug then
-        debugPrint("In /hltest command. HappyLog:", HappyLog, "HappyLog.updateUI:", HappyLog.updateUI)
+        DebugPrint("In /hltest command. HappyLog:", HappyLog, "HappyLog.updateUI:", HappyLog.updateUI)
 
         if not HappyLog.updateUI then
-            debugPrint("Error: HappyLog.updateUI is nil before calling handleAddonMessage.")
+            DebugPrint("Error: HappyLog.updateUI is nil before calling handleAddonMessage.")
             return
         end
 
@@ -332,9 +344,9 @@ SlashCmdList["HAPPYLOGCLEAR"] = function()
         -- Clear the HappyLogDB.data table
         if HappyLogDB and HappyLogDB.data then
             wipe(HappyLogDB.data) -- Efficiently clears the table
-            debugPrint("|cffffd700[HappyLog]:|r Data table has been cleared.")
+            DebugPrint("|cffffd700[HappyLog]:|r Data table has been cleared.")
         else
-            debugPrint("|cffffd700[HappyLog]:|r No data to clear.")
+            DebugPrint("|cffffd700[HappyLog]:|r No data to clear.")
         end
 
         -- Update the UI
