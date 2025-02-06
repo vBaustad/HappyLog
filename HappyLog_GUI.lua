@@ -84,6 +84,7 @@ local function createToggleButton(titleFrame, mainFrame)
     -- Enable dragging functionality
     toggleButton:SetMovable(true)
     toggleButton:EnableMouse(true)
+    toggleButton:RegisterForClicks("LeftButtonUp", "RightButtonUp")
     toggleButton:RegisterForDrag("LeftButton")
     toggleButton:SetScript("OnDragStart", function(self)
         if not HappyLogDB.lock then -- Check if the frame is locked
@@ -107,15 +108,20 @@ local function createToggleButton(titleFrame, mainFrame)
     end)
 
     -- Add functionality: Toggle the visibility of the main frame
-    toggleButton:SetScript("OnClick", function()
-        if mainFrame:IsShown() then
-            titleFrame:Hide()
-            mainFrame:Hide()
-            --toggleButton:SetAlpha(0.5) -- Optional: Adjust transparency to indicate the minimized state
-        else
-            titleFrame:Show()
-            mainFrame:Show()
-            --toggleButton:SetAlpha(1)
+    toggleButton:SetScript("OnClick", function(clickedFrame, button)
+        print(button)
+        if button == "RightButton" then
+            OpenSettingsPanel()
+        elseif button == "LeftButton" then 
+            if mainFrame:IsShown() then
+                titleFrame:Hide()
+                mainFrame:Hide()
+                --toggleButton:SetAlpha(0.5) -- Optional: Adjust transparency to indicate the minimized state
+            else
+                titleFrame:Show()
+                mainFrame:Show()
+                --toggleButton:SetAlpha(1)
+            end
         end
     end)
 
@@ -320,7 +326,8 @@ local function setupRowEntries(parent, data)
             GameTooltip:AddDoubleLine("Name:", (player.name or "Unknown"), 1, 1, 1, 0.8, 0.8, 0.8)
             GameTooltip:AddDoubleLine("Class:", (player.class or "Unknown"), 1, 1, 1, 0.8, 0.8, 0.8)
             GameTooltip:AddDoubleLine("Guild:", (player.guild or ""), 1, 1, 1, 0.8, 0.8, 0.8)
-            GameTooltip:AddDoubleLine("Zone:", (player.zone or "Unknown"), 1, 1, 1, 0.8, 0.8, 0.8)
+            GameTooltip:AddDoubleLine("Zone:", (player.zone or "Unknown"), 1, 1, 1, 0.8, 0.8, 0.8)            
+            GameTooltip:AddDoubleLine("Date:", (player.date or ""), 1, 1, 1, 0.8, 0.8, 0.8)
             GameTooltip:AddDoubleLine("Last Message:", (player.message or ""), 1, 1, 1, 0.8, 0.8, 0.8)
             
             GameTooltip:Show()
@@ -366,6 +373,9 @@ local function setupRowEntries(parent, data)
                             text:SetTextColor(1, 1, 1, 1)
                         elseif col.name == "Last Message" then
                             value = player.message or ""
+                            text:SetTextColor(1, 1, 1, 1)
+                        elseif col.name == "Date" then
+                            value = player.date or ""
                             text:SetTextColor(1, 1, 1, 1)
                         end
                         -- Set the text for this column

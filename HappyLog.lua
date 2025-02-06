@@ -26,13 +26,13 @@ HappyLog.updateUI = HappyLog.updateUI or function() end
 
 local addonChannelName = "happylogalertschannel"
 local receivedNonces = {}
-local secretKey = "HappyLogSecretKey489!" -- Change this to a unique key
+local secretKey = "HappyLogSecretKey489!"
 
 local function generateHash(message)
     local hash = 0
     for i = 1, #message do
         local byte = string.byte(message, i)
-        hash = (hash + byte * i) % 100000  -- Modulo keeps hash manageable
+        hash = (hash + byte * i) % 100000 
     end
     return tostring(hash)
 end
@@ -65,10 +65,10 @@ local function onChatMsgSystem(event, message)
         DebugPrint("Error: Received system message is nil.")
         return
     end
-
-    -- Your processing logic here
+    
     local name = message:match("^(%S+) has reached level 60!")
     if name then
+
         -- Ensure the confirmedSixties table exists before accessing it
         HappyLogDB.confirmedSixties = HappyLogDB.confirmedSixties or {}
 
@@ -103,6 +103,7 @@ local function handleAddonMessage(event, text, sender, ...)
             class = CapitalizeFirstLetter(class),
             zone = CapitalizeFirstLetter(zone),
             message = lastMessage or "",
+            date = date("%b %d, %Y")
         })
 
         -- Update UI
@@ -212,7 +213,7 @@ frame:SetScript("OnEvent", function(self, event, ...)
     
             -- Store the nonce to prevent replay attacks
             table.insert(receivedNonces, nonce)
-            CleanOldNonces(receivedNonces) -- Keep the table size under control
+            CleanOldNonces(receivedNonces)
 
             -- Recalculate the Hash using the same nonce & timestamp
             local expectedHash = generateHash(parsedText .. secretKey)
@@ -266,7 +267,7 @@ SLASH_HAPPYLOGDEBUG1 = "/hldebug"
 --SLASH_CONFIRMEDSIXTIES1 = "/sixties"
 --SLASH_TESTSYSTEMMSG1 = "/testmsg"
 --SLASH_TESTLASTMSG1 = "/hlmsg"
-SLASH_TESTLEVELUP1 = "/hllvl"
+--SLASH_TESTLEVELUP1 = "/hllvl"
 
 
 SlashCmdList["TESTLEVELUP"] = function(level)

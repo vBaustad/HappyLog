@@ -79,6 +79,6 @@ end
 -- Function to print the current column order with placeholders
 function PrintColumnOrder()
     for i, column in ipairs(HappyLogDB.columnOrder) do
-        DebugPrint(column or "---") -- Show "---" for empty slots
+        DebugPrint(column or "---")
     end
 end   

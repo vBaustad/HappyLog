@@ -25,18 +25,13 @@ HappyLog_Data.columns = {
     { name = "Class", width = 60 },
     { name = "Zone", width = 100 },
     { name = "Last Message", width = 150 },
+    { name = "Date", width = 100 }
 }
 
--- --- Predefined Events (if needed) ---
--- -- HappyLog_Data.events = {
--- --     ["PLAYER_LEVEL_UP"] = true,
--- --     ["CHAT_MSG_SYSTEM"] = true,
--- --     ["CHAT_MSG_GUILD"] = true,
--- -- }
 
 -- --- Default Addon Settings ---
 HappyLog_Data.defaults = {
     selectedSoundID = 569772, -- Default "Level Up Ding"
     debugMode = false,
-    columnOrder = { "Name", "Guild", "Class", "Zone", "Last Message" },
+    columnOrder = { "Name", "Guild", "Class", "Zone", "Last Message", "Date" },
 }

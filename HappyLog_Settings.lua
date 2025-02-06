@@ -12,7 +12,7 @@ local function updateColumnsOrder()
         if columnName and columnName ~= "Nothing" then
             table.insert(reorderedColumns, columnMap[columnName])
         else
-            table.insert(reorderedColumns, nil) -- Placeholder for empty columns
+            table.insert(reorderedColumns, nil)
         end
     end
 
@@ -23,7 +23,6 @@ end
 -- Initialize settings
 function HappyLog_Settings.Initialize()
     HappyLogDB = HappyLogDB or {}
-    -- Initialize columns and column order
     HappyLogDB.columns = HappyLogDB.columns or CopyTable(HappyLog_Data.columns)
     if #HappyLogDB.columnOrder == 0 then
         for i, col in ipairs(HappyLog_Data.columns) do
@@ -36,25 +35,27 @@ function HappyLog_Settings.Initialize()
 end
 
 local function createColumnDropdowns(columnConfigFrame, dropdowns)
-    -- Define layout variables
-    local dropdownWidth = 200
+    local dropdownWidth = 170
     local dropdownHeight = 40
     local paddingX = 16
     local paddingY = 10
 
-    -- Create dropdowns dynamically in a grid (2 columns) with headers
+    --TODO: remove this at a later date if we get column suggestions.
+    local moreColumnsText = columnConfigFrame:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")    
+    moreColumnsText:SetPoint("TOPLEFT", columnConfigFrame, "TOPRIGHT", -150, -16)
+    moreColumnsText:SetText("More column suggestions?")
+
     for i = 1, #HappyLog_Data.columns do
-        -- Create header for each dropdown
         local header = columnConfigFrame:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
         header:SetText("Column " .. i)
 
         local dropdown = CreateFrame("Frame", nil, columnConfigFrame, "UIDropDownMenuTemplate")
 
         -- Determine row and column position
-        local row = math.floor((i - 1) / 2) -- Zero-based row index
-        local col = (i - 1) % 2 -- Column index (0 or 1)
+        local row = math.floor((i - 1) / 2)
+        local col = (i - 1) % 2
         -- Calculate offsets
-        local xOffset = 8 + col * (dropdownWidth + paddingX)
+        local xOffset = 16 + col * (dropdownWidth + paddingX)
         local yOffset = -16 - row * (dropdownHeight + paddingY)
 
         -- Position headers and dropdowns
@@ -78,13 +79,11 @@ local function createSoundDropdown(columnConfigFrame)
     local header = columnConfigFrame:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
     header:SetText("Select Notification Sound")
 
-    header:SetPoint("TOPLEFT", columnConfigFrame, "BOTTOMLEFT", 8, -16)
+    header:SetPoint("TOPLEFT", columnConfigFrame, "BOTTOMLEFT", 0, -16)
     HappyLogSoundDropdown:SetPoint("TOPLEFT", header, "BOTTOMLEFT", -16, -4)
 
 
     UIDropDownMenu_SetWidth(HappyLogSoundDropdown, 150)
-
-        -- Set the saved selection text
         local selectedSoundName = "Sounds"
         if HappyLogDB.selectedSoundID then
             for _, sound in ipairs(HappyLog_Data.sounds) do
@@ -94,8 +93,6 @@ local function createSoundDropdown(columnConfigFrame)
                 end
             end
         end
-
-    -- Set default text
     UIDropDownMenu_SetText(HappyLogSoundDropdown, selectedSoundName)
 end
 
@@ -107,22 +104,40 @@ local function refreshSoundDropdown()
             info.text = sound.name
             info.checked = HappyLogDB.selectedSoundID == sound.id
             info.func = function()
-                DebugPrint("Selected Sound:", sound.id) -- Debugging output
+                DebugPrint("Selected Sound:", sound.id)
                 UIDropDownMenu_SetText(HappyLogSoundDropdown, sound.name)
                 HappyLogDB.selectedSoundID = sound.id
-                PlayNotificationSound(sound.id) -- Play preview sound
+                PlayNotificationSound(sound.id)
             end
             UIDropDownMenu_AddButton(info, level)
         end
     end)
 end
 
+--Change this to a useful frame at a later date. 
+local function createComingSoonFrame(parent)
+    local comingSoonFrame = CreateFrame("Frame", nil, parent, "BackdropTemplate")
+    comingSoonFrame:SetPoint("TOPLEFT", parent, "BOTTOMLEFT", 0, -100)
+    comingSoonFrame:SetSize(600, 180)
+    comingSoonFrame:SetBackdrop({
+        bgFile = "Interface\\Tooltips\\UI-Tooltip-Background",
+        edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
+        tile = true,
+        tileSize = 16,
+        edgeSize = 16,
+        insets = { left = 4, right = 4, top = 4, bottom = 4 }
+    })
+    comingSoonFrame:SetBackdropColor(0.1, 0.1, 0.1, 0.8)
 
+    local comingSoonHeader = comingSoonFrame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    comingSoonHeader:SetPoint("BOTTOMLEFT", comingSoonFrame, "TOPLEFT", 0, 2)
+    comingSoonHeader:SetText("More settings coming soon...")
+end
 
 -- Function to reorder and normalize the column order
 local function reorderAndNormalizeColumnOrder()
-    local filled = {} -- Holds selected column names
-    local emptyCount = 0 -- Count of empty slots
+    local filled = {}
+    local emptyCount = 0
 
     -- Collect filled columns and count empty slots
     for _, column in ipairs(HappyLogDB.columnOrder) do
@@ -136,13 +151,11 @@ local function reorderAndNormalizeColumnOrder()
     -- Reset columnOrder with filled columns first, followed by empty slots
     HappyLogDB.columnOrder = filled
     for i = 1, emptyCount do
-        table.insert(HappyLogDB.columnOrder, nil) -- Append empty placeholders
-    end
-    -- Sync HappyLog.columns with the new order
+        table.insert(HappyLogDB.columnOrder, nil)
+    end    
     updateColumnsOrder()
 end
 
--- Function to refresh all dropdowns
 local function refreshDropdownOptions(dropdowns)
     for i, dropdown in ipairs(dropdowns) do
         UIDropDownMenu_Initialize(dropdown, function(self, level, menuList)
@@ -151,7 +164,6 @@ local function refreshDropdownOptions(dropdowns)
                 info.text = column.name
                 info.checked = HappyLogDB.columnOrder[i] == column.name
                 info.func = function()
-                    -- Update the selected column in this dropdown
                     HappyLogDB.columnOrder[i] = column.name
                     UIDropDownMenu_SetText(dropdown, column.name)    
                     
@@ -181,8 +193,7 @@ local function refreshDropdownOptions(dropdowns)
 
                 -- Normalize and reorder the column order
                 reorderAndNormalizeColumnOrder()
-                -- Print the current column order
-                --printColumnOrder()
+
                 -- Update the UI
                 HappyLog.updateUI()
             end
@@ -193,7 +204,6 @@ end
 
 function HappyLog_Settings.createSettingsPanel()
     local dropdowns = {}
-    local lastControl
     
     local panel = CreateFrame("Frame", "HappyLogSettingsPanel", UIParent)
     panel.name = "HappyLog"
@@ -223,7 +233,7 @@ function HappyLog_Settings.createSettingsPanel()
     -- Create Column Configuration Section
     local columnConfigFrame = CreateFrame("Frame", nil, panel, "BackdropTemplate")
     columnConfigFrame:SetPoint("TOPLEFT", title, "BOTTOMLEFT", 0, -30)
-    columnConfigFrame:SetSize(600, 180) -- Adjust the size as needed
+    columnConfigFrame:SetSize(600, 180)
     columnConfigFrame:SetBackdrop({
         bgFile = "Interface\\Tooltips\\UI-Tooltip-Background",
         edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
@@ -240,9 +250,10 @@ function HappyLog_Settings.createSettingsPanel()
 
 
     createColumnDropdowns(columnConfigFrame, dropdowns)
-
-    -- Create the sound dropdown within the Sound Dropdown section
     createSoundDropdown(columnConfigFrame)
+
+    --Change this to something useful at a later date
+    createComingSoonFrame(columnConfigFrame)
 
     -- Initialize column order and refresh dropdowns
     normalizeColumnOrder()

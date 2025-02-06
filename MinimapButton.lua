@@ -48,5 +48,4 @@ local function CreateMinimapButton()
     return minimapButton
 end
 
--- Make the CreateMinimapButton function accessible globally
 _G.CreateMinimapButton = CreateMinimapButton
