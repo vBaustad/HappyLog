@@ -54,7 +54,7 @@ local function createColumnDropdowns(columnConfigFrame, dropdowns)
         local row = math.floor((i - 1) / 2) -- Zero-based row index
         local col = (i - 1) % 2 -- Column index (0 or 1)
         -- Calculate offsets
-        local xOffset = 0 + col * (dropdownWidth + paddingX)
+        local xOffset = 8 + col * (dropdownWidth + paddingX)
         local yOffset = -16 - row * (dropdownHeight + paddingY)
 
         -- Position headers and dropdowns

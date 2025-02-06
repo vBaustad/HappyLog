@@ -135,7 +135,7 @@ local function createTitleFrame(mainFrame)
 
     -- Add a title text (optional)
     local titleText = titleFrame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-    titleText:SetPoint("CENTER", titleFrame, "CENTER", 0, -1)
+    titleText:SetPoint("CENTER", titleFrame, "CENTER", 0, -4)
     titleText:SetText("HappyLog")
 
     -- Dragging functionality
@@ -164,15 +164,15 @@ local function createHeaderFrame(parent)
     end
 
     -- Header frame setup
-    local headerHeight = 10
+    local headerHeight = 12
     local offsetX = 5 -- Initial padding
 
     -- Create the header frame
     local headerFrame = CreateFrame("Frame", nil, parent)
     headerFrame:SetHeight(headerHeight)
     headerFrame:SetPoint("TOPLEFT", parent, "TOPLEFT", 5, -23)
-    headerFrame:SetPoint("TOPRIGHT", parent, "TOPRIGHT", 5, -5)
-
+    headerFrame:SetPoint("TOPRIGHT", parent, "TOPRIGHT", -5, -23)
+    headerFrame:SetClipsChildren(true)
     headerFrame.headers = {}
 
     for _, order in ipairs(HappyLogDB.columnOrder) do
@@ -239,6 +239,25 @@ local function createResizeButton(parent)
     return resizeButton
 end
 
+-- Add alternating row background strips
+local function addBackgroundRows(content, rowHeight, visibleHeight)
+    local numRows = math.ceil(visibleHeight / rowHeight) -- Calculate how many rows fit in the visible area
+
+    for i = 1, numRows do
+        local rowBg = content:CreateTexture(nil, "BACKGROUND")
+        rowBg:SetHeight(rowHeight)
+        rowBg:SetPoint("TOPLEFT", content, "TOPLEFT", 0, -(i - 1) * rowHeight)
+        rowBg:SetPoint("TOPRIGHT", content, "TOPRIGHT", 0, -(i - 1) * rowHeight)
+
+        -- Alternate colors for rows
+        if i % 2 == 0 then
+            rowBg:SetColorTexture(0.1, 0.1, 0.1, 0) -- Even rows
+        else
+            rowBg:SetColorTexture(0.2, 0.2, 0.2, 0.5) -- Odd rows
+        end
+    end
+end
+--0.1, 0.1, 0.1, 0.5
 -- Create row entries
 local function setupRowEntries(parent, data)
     data = data or {}
@@ -264,6 +283,8 @@ local function setupRowEntries(parent, data)
     content:SetSize(parentWidth, math.max(contentHeight, visibleHeight)) -- Ensure content is at least the visible height
     scrollFrame:SetScrollChild(content)
     
+    addBackgroundRows(content, rowHeight, visibleHeight)
+
     scrollFrame.ScrollBar:SetMinMaxValues(0, math.max(0, contentHeight - visibleHeight))
     scrollFrame.ScrollBar:SetValueStep(rowHeight)
     scrollFrame.ScrollBar:SetValue(0)
@@ -284,7 +305,7 @@ local function setupRowEntries(parent, data)
         row:SetPoint("TOP", content, "TOP", 0, -(i - 1) * rowHeight)
 
         -- Background color for row
-        local bgColor = (i % 2 == 0) and {0.2, 0.2, 0.2, 0.8} or {0.1, 0.1, 0.1, 0.5}
+        local bgColor = (i % 2 == 0) and {0.1, 0.1, 0.1, 0} or {0.2, 0.2, 0.2, 0.5}
         row.bg = row:CreateTexture(nil, "BACKGROUND")
         row.bg:SetAllPoints(row)
         row.bg:SetColorTexture(unpack(bgColor))
@@ -296,11 +317,12 @@ local function setupRowEntries(parent, data)
             GameTooltip:SetOwner(row, "ANCHOR_RIGHT")
             GameTooltip:ClearLines()
             GameTooltip:AddLine("Player Information", 1, 0.82, 0)
-            GameTooltip:AddLine("Name: " .. (player.name or "Unknown"), 0.8, 0.8, 0.8)
-            GameTooltip:AddLine("Class: " .. (player.class or "Unknown"), 0.8, 0.8, 0.8)
-            GameTooltip:AddLine("Guild: " .. (player.guild or ""), 0.8, 0.8, 0.8)
-            GameTooltip:AddLine("Zone: " .. (player.zone or "Unknown"), 0.8, 0.8, 0.8)
-            GameTooltip:AddLine("Last Message: " .. (player.message or ""), 0.8, 0.8, 0.8)
+            GameTooltip:AddDoubleLine("Name:", (player.name or "Unknown"), 1, 1, 1, 0.8, 0.8, 0.8)
+            GameTooltip:AddDoubleLine("Class:", (player.class or "Unknown"), 1, 1, 1, 0.8, 0.8, 0.8)
+            GameTooltip:AddDoubleLine("Guild:", (player.guild or ""), 1, 1, 1, 0.8, 0.8, 0.8)
+            GameTooltip:AddDoubleLine("Zone:", (player.zone or "Unknown"), 1, 1, 1, 0.8, 0.8, 0.8)
+            GameTooltip:AddDoubleLine("Last Message:", (player.message or ""), 1, 1, 1, 0.8, 0.8, 0.8)
+            
             GameTooltip:Show()
         end)
         row:SetScript("OnLeave", function()
@@ -316,7 +338,7 @@ local function setupRowEntries(parent, data)
                 for _, col in ipairs(HappyLog.columns) do 
                     if order == col.name then
                         local text = row:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-                        text:SetFont("Fonts\\FRIZQT__.TTF", 10)
+                        text:SetFont("Fonts\\FRIZQT__.TTF", 11)
                         text:SetPoint("LEFT", row, "LEFT", offsetX, 0)
                         text:SetWidth(col.width)
                         text:SetJustifyH("LEFT")

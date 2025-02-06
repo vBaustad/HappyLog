@@ -90,7 +90,7 @@ local function handleAddonMessage(event, text, sender, ...)
     -- Add to data if confirmed
     local existsInConfirmedSixties = false
     for _, confirmedName in ipairs(HappyLogDB.confirmedSixties or {}) do
-        if confirmedName == name then
+        if confirmedName == name or HappyLogDB.debug == true then
             existsInConfirmedSixties = true
             break
         end
@@ -258,14 +258,14 @@ frame:RegisterEvent("CHAT_MSG_GUILD")
 frame:RegisterEvent("ADDON_LOADED")
 
 -- Slash command for testing
-SLASH_HAPPYLOG1 = "/hltest"
-SLASH_HAPPYLOGDEBUG1 = "/hldebug"
-SLASH_HAPPYLOGCLEAR1 = "/hlclear"
 SLASH_HAPPYLOGSETTINGS1 = "/happylog"
 SLASH_HAPPYLOGSETTINGS2 = "/hl"
-SLASH_CONFIRMEDSIXTIES1 = "/sixties"
-SLASH_TESTSYSTEMMSG1 = "/testmsg"
-SLASH_TESTLASTMSG1 = "/hlmsg"
+--SLASH_HAPPYLOG1 = "/hltest"
+SLASH_HAPPYLOGDEBUG1 = "/hldebug"
+--SLASH_HAPPYLOGCLEAR1 = "/hlclear"
+--SLASH_CONFIRMEDSIXTIES1 = "/sixties"
+--SLASH_TESTSYSTEMMSG1 = "/testmsg"
+--SLASH_TESTLASTMSG1 = "/hlmsg"
 SLASH_TESTLEVELUP1 = "/hllvl"
 
 
