@@ -5,8 +5,11 @@
 ## Version: 0.1
 ## SavedVariables: HappyLogDB, HappyLog
 
+Libs/AceComm-3.0/AceComm-3.0.lua
+
+SupportOperations.lua
 HappyLog.lua
+HappyLog_Data.lua
 HappyLog_Settings.lua
 HappyLog_GUI.lua
-
-
+MinimapButton.lua
