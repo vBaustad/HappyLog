@@ -19,7 +19,8 @@ HappyLogDB.columnOrder = HappyLogDB.columnOrder or {}
 HappyLogDB.Minimized = HappyLogDB.Minimized or false
 HappyLogDB.minimap = HappyLogDB.minimap or {}
 HappyLogDB.selectedSoundID = HappyLogDB.selectedSoundID
-HappyLogDB.debug = false
+HappyLogDB.colors = HappyLogDB.colors or true
+HappyLogDB.debug = HappyLogDB.debug or false
 HappyLog_Settings = {}
 C_ChatInfo.RegisterAddonMessagePrefix("HappyLog")
 HappyLog.updateUI = HappyLog.updateUI or function() end
@@ -119,13 +120,6 @@ local function handleAddonMessage(event, text, sender, ...)
     end
 end
 
-local function sendTestSystemMessage()
-    local testMessage = "Sparebanko has reached level 60!"
-    print("|cffffd700[Test]:|r", testMessage)
-    ChatFrame1:AddMessage(testMessage)
-    onChatMsgSystem("CHAT_MSG_SYSTEM", testMessage)
-end
-
 local frame = CreateFrame("Frame")
 
 frame:SetScript("OnEvent", function(self, event, ...)
@@ -139,18 +133,18 @@ frame:SetScript("OnEvent", function(self, event, ...)
     
         -- Check if the player reached level 60
         if level == 60 then
-            print("|cffffd700[HappyLog]:|r Congratulations on reaching level 60!")
-    
+            print("|cffffd700[HappyLog]:|r Congratulations on reaching level 60!")  
+            C_Timer.After(5, function() end)
+
             -- Gather player information
             local name = UnitName("player") -- Player's name
-            local guildName = GetGuildInfo("player") or "No Guild" -- Player's guild name
+            local guildName = GetGuildInfo("player") or "" -- Player's guild name
             local _, race = UnitRace("player") -- Player's race
             local _, class = UnitClass("player") -- Player's class
             local zone = GetZoneText() -- Current zone name
-            local message = HappyLogDB.lastPlayerMessage or "No Message" -- Custom last message
+            local message = HappyLogDB.lastPlayerMessage or "" -- Custom last message
             
             local timestamp = time() -- Current Unix timestamp
-            print(timestamp)
             local nonce = tostring(math.random(10000, 99999)) -- Unique random number
 
             -- Serialize the data
@@ -165,7 +159,8 @@ frame:SetScript("OnEvent", function(self, event, ...)
                 timestamp,
                 nonce
             )
-            sendAddonMessage(serialized)            
+            sendAddonMessage(serialized)         
+
         end
     elseif event == "CHAT_MSG_SYSTEM" then
         local message = ...
@@ -261,19 +256,17 @@ frame:RegisterEvent("ADDON_LOADED")
 -- Slash command for testing
 SLASH_HAPPYLOGSETTINGS1 = "/happylog"
 SLASH_HAPPYLOGSETTINGS2 = "/hl"
---SLASH_HAPPYLOG1 = "/hltest"
 SLASH_HAPPYLOGDEBUG1 = "/hldebug"
---SLASH_HAPPYLOGCLEAR1 = "/hlclear"
---SLASH_CONFIRMEDSIXTIES1 = "/sixties"
---SLASH_TESTSYSTEMMSG1 = "/testmsg"
---SLASH_TESTLASTMSG1 = "/hlmsg"
---SLASH_TESTLEVELUP1 = "/hllvl"
+SLASH_HAPPYLOGCLEARALL1 = "/hlclearall"
+SLASH_HAPPYLOGCLEARLAST1 = "/hlclearlast"
+SLASH_CONFIRMEDSIXTIES1 = "/sixties"
+SLASH_TESTLEVELUP1 = "/hllvl"
 
 
 SlashCmdList["TESTLEVELUP"] = function(level)
     if HappyLogDB.debug then
         level = tonumber(level) or 60 -- Default to level 60 if no argument is provided
-        print("|cffffd700[Test]:|r Simulating level-up to level", level)
+        DebugPrint("|cffffd700[Test]:|r Simulating level-up to level", level)
         -- Trigger your level-up logic
         frame:GetScript("OnEvent")(frame, "PLAYER_LEVEL_UP", level)
     end
@@ -288,12 +281,6 @@ SlashCmdList["CONFIRMEDSIXTIES"] = function()
     end
 end
 
-SlashCmdList["TESTLASTMSG"] = function()
-    if HappyLogDB.debug then
-        DebugPrint("Last Message: " .. HappyLogDB.lastPlayerMessage) 
-    end
-end
-
 SlashCmdList["HAPPYLOGSETTINGS"] = function(msg)
     local category = Settings.GetCategory("HappyLog")
     if category then
@@ -303,44 +290,7 @@ SlashCmdList["HAPPYLOGSETTINGS"] = function(msg)
     end
 end
 
-SlashCmdList["TESTSYSTEMMSG"] = function()
-    if HappyLogDB.debug then
-        sendTestSystemMessage()
-    end
-end
-
-SlashCmdList["HAPPYLOG"] = function()
-    if HappyLogDB.debug then
-        DebugPrint("In /hltest command. HappyLog:", HappyLog, "HappyLog.updateUI:", HappyLog.updateUI)
-
-        if not HappyLog.updateUI then
-            DebugPrint("Error: HappyLog.updateUI is nil before calling handleAddonMessage.")
-            return
-        end
-
-        local testData = {
-            name = "TestPlayer",
-            guild = "TestGuild",
-            level = 60,
-            race = "Orc",
-            class = "Warrior",
-            zone = "Orgrimmar",
-            message = "This is a test message!",
-        }
-        local serialized = string.format("%s;%s;%d;%s;%s;%s;%s",
-            testData.name,
-            testData.guild,
-            testData.level,
-            testData.race,
-            testData.class,
-            testData.zone,
-            testData.message
-        )
-        handleAddonMessage(nil, nil, "HappyLog", serialized, nil, "Tester")
-    end
-end
-
-SlashCmdList["HAPPYLOGCLEAR"] = function()
+SlashCmdList["HAPPYLOGCLEARALL"] = function()
     if HappyLogDB.debug then
         -- Clear the HappyLogDB.data table
         if HappyLogDB and HappyLogDB.data then
@@ -350,6 +300,22 @@ SlashCmdList["HAPPYLOGCLEAR"] = function()
             DebugPrint("|cffffd700[HappyLog]:|r No data to clear.")
         end
 
+        -- Update the UI
+        if HappyLog.updateUI then
+            HappyLog.updateUI()
+        end
+    end
+end
+
+SlashCmdList["HAPPYLOGCLEARLAST"] = function()
+    if HappyLogDB.debug then
+        -- Clear the HappyLogDB.data table
+        if HappyLogDB and HappyLogDB.data and #HappyLogDB.data > 0 then
+            local removedEntry = table.remove(HappyLogDB.data) -- Removes the last entry
+            DebugPrint("|cffffd700[HappyLog]:|r Last entry removed: " .. tostring(removedEntry))
+        else
+            DebugPrint("|cffffd700[HappyLog]:|r No data to remove.")
+        end
         -- Update the UI
         if HappyLog.updateUI then
             HappyLog.updateUI()

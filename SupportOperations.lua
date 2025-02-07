@@ -72,7 +72,7 @@ function OpenSettingsPanel()
         Settings.OpenToCategory(HappyLog_Settings.category.ID)
         Settings.OpenToCategory(HappyLog_Settings.category.ID)
     else
-        print("|cffff0000[HappyLog]:|r No valid settings panel API found!")
+        DebugPrint("|cffff0000[HappyLog]:|r No valid settings panel API found!")
     end
 end
 

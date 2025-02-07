@@ -73,7 +73,6 @@ end
 
 
 local function createSoundDropdown(columnConfigFrame)
-
     HappyLogSoundDropdown = CreateFrame("Frame", "HappyLogSoundDropdown", columnConfigFrame, "UIDropDownMenuTemplate")
 
     local header = columnConfigFrame:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
@@ -97,7 +96,6 @@ local function createSoundDropdown(columnConfigFrame)
 end
 
 local function refreshSoundDropdown()
-    print(HappyLogDB.selectedSoundID)
     UIDropDownMenu_Initialize(HappyLogSoundDropdown, function(self, level, menuList)
         for _, sound in ipairs(HappyLog_Data.sounds) do
             local info = UIDropDownMenu_CreateInfo()
@@ -111,6 +109,33 @@ local function refreshSoundDropdown()
             end
             UIDropDownMenu_AddButton(info, level)
         end
+    end)
+end
+
+local function createCheckbox(parent)
+    local checkBox = CreateFrame("CheckButton", nil, parent, "UICheckButtonTemplate")
+    checkBox:SetPoint("TOPLEFT", parent, "BOTTOMLEFT", 170, -28)
+    checkBox.text = checkBox:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    checkBox.text:SetPoint("LEFT", checkBox, "RIGHT", 5, 0)
+    checkBox.text:SetText("Enable Colored Rows")
+    -- Tooltip
+    checkBox:SetScript("OnEnter", function(self)
+        GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+        GameTooltip:SetText("Toggle colors for guild and player rows in the table.", nil, nil, nil, nil, true)
+        GameTooltip:Show()
+    end)
+    checkBox:SetScript("OnLeave", function()
+        GameTooltip:Hide()
+    end)
+
+    -- Set initial state
+    checkBox:SetChecked(HappyLogDB.colors)
+
+    -- Toggle function
+    checkBox:SetScript("OnClick", function(self)
+        HappyLogDB.colors = self:GetChecked()
+        DebugPrint("HappyLog Colors: " .. (HappyLogDB.colors and "Enabled" or "Disabled"))
+        HappyLog.updateUI() -- Call function to update table colors
     end)
 end
 
@@ -251,7 +276,7 @@ function HappyLog_Settings.createSettingsPanel()
 
     createColumnDropdowns(columnConfigFrame, dropdowns)
     createSoundDropdown(columnConfigFrame)
-
+    createCheckbox(columnConfigFrame)
     --Change this to something useful at a later date
     createComingSoonFrame(columnConfigFrame)
 
