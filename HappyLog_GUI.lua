@@ -60,7 +60,7 @@ local function createToggleButton(titleFrame, mainFrame)
     toggleButton:SetPoint("TOPLEFT", titleFrame, "TOPLEFT", 0, 2) -- Position in the top-left corner
 
     -- Ensure it stays above other frames
-    toggleButton:SetFrameStrata("HIGH")
+    toggleButton:SetFrameStrata("MEDIUM")
     toggleButton:SetFrameLevel(10)
 
     -- Add a circular mask for the button
@@ -109,7 +109,6 @@ local function createToggleButton(titleFrame, mainFrame)
 
     -- Add functionality: Toggle the visibility of the main frame
     toggleButton:SetScript("OnClick", function(clickedFrame, button)
-        print(button)
         if button == "RightButton" then
             OpenSettingsPanel()
         elseif button == "LeftButton" then 
@@ -263,7 +262,44 @@ local function addBackgroundRows(content, rowHeight, visibleHeight)
         end
     end
 end
---0.1, 0.1, 0.1, 0.5
+
+
+-- Ensure UIDropDownMenu library is loaded
+if not C_AddOns.IsAddOnLoaded("Blizzard_UIDropDownMenu") then
+    C_AddOns.LoadAddOn("Blizzard_UIDropDownMenu")
+end
+
+local MenuFrame = CreateFrame("Frame", "HappyLogContextMenu", UIParent, "UIDropDownMenuTemplate")
+
+local function WhisperPlayer(self)
+    if self and self.arg1 then
+        ChatFrame_OpenChat("/w " .. self.arg1 .. " ")
+    end
+end
+
+local function InitializeContextMenu(self, level)
+    if not level or not self.playerName then return end
+
+    local info = UIDropDownMenu_CreateInfo()
+    info.text = "Whisper " .. self.playerName
+    info.notCheckable = true
+    info.func = WhisperPlayer
+    info.arg1 = self.playerName
+    info.keepShownOnClick = false 
+
+    UIDropDownMenu_AddButton(info, level)
+end
+
+local function ShowContextMenu(playerName)
+    if not playerName or playerName == "" then return end
+
+    MenuFrame.playerName = playerName
+    UIDropDownMenu_Initialize(MenuFrame, InitializeContextMenu, "MENU")
+    ToggleDropDownMenu(1, nil, MenuFrame, "cursor", 0, 0)
+end
+
+
+
 -- Create row entries
 local function setupRowEntries(parent, data)
     data = data or {}
@@ -305,13 +341,26 @@ local function setupRowEntries(parent, data)
     content.rows = {}
 
     -- Create rows dynamically
-    for i, player in ipairs(data) do
+    for i = #data, 1, -1 do
+        local player = data[i]
         local row = CreateFrame("Frame", nil, content)
         row:SetSize(parentWidth, rowHeight) -- Adjust this value to control the top gap
-        row:SetPoint("TOP", content, "TOP", 0, -(i - 1) * rowHeight)
+        row:SetPoint("TOP", content, "TOP", 0, -(#data - i) * rowHeight)
+        local bgColor        
+        local playerName = UnitName("player")
+        local guildName = GetGuildInfo("player")
 
-        -- Background color for row
-        local bgColor = (i % 2 == 0) and {0.1, 0.1, 0.1, 0} or {0.2, 0.2, 0.2, 0.5}
+        if HappyLogDB.colors then
+            if player.name == playerName then
+                bgColor = {0.6, 0.4, 0.15, 0.5}
+            elseif player.guild == guildName then
+                bgColor = {0.2, 0.8, 0.2, 0.2}
+            else
+                bgColor = (i % 2 == 0) and {0.1, 0.1, 0.1, 0} or {0.2, 0.2, 0.2, 0.5}
+            end
+        else
+            bgColor = (i % 2 == 0) and {0.1, 0.1, 0.1, 0} or {0.2, 0.2, 0.2, 0.5}
+        end
         row.bg = row:CreateTexture(nil, "BACKGROUND")
         row.bg:SetAllPoints(row)
         row.bg:SetColorTexture(unpack(bgColor))
@@ -335,6 +384,12 @@ local function setupRowEntries(parent, data)
         row:SetScript("OnLeave", function()
             row.bg:SetColorTexture(unpack(bgColor)) -- Restore default color
             GameTooltip:Hide() -- Hide tooltip
+        end)
+
+        row:SetScript("OnMouseUp", function(_, button)
+            if button == "RightButton" then
+                ShowContextMenu(player.name)
+            end
         end)
 
         -- Add text columns dynamically
