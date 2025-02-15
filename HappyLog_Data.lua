@@ -5,17 +5,21 @@ end
 
 local LSM30 = LibStub("LibSharedMedia-3.0", true)
 
-if LSM30 then
-    local soundList = LSM30:List("sound") -- Get all registered sounds
+function LoadAllSounds()
+    if not LSM30 then return end
+
+    local soundTable = LSM30:HashTable("sound") -- Get all registered sounds
     HappyLog_Data.sounds = {}
 
-    for _, soundName in ipairs(soundList) do
-        local soundPath = LSM30:Fetch("sound", soundName) -- Get sound file path
-        if soundPath then
+    for soundName, soundPath in pairs(soundTable) do
+        if soundPath and soundPath ~= "" then -- Ensure path is valid
             table.insert(HappyLog_Data.sounds, { id = soundPath, name = soundName })
         end
     end
+
+   DebugPrint("HappyLog: Loaded " .. #HappyLog_Data.sounds .. " sounds from LibSharedMedia!") -- Debugging
 end
+
 
 
 --- Default Columns for Data Table ---
@@ -26,12 +30,4 @@ HappyLog_Data.columns = {
     { name = "Zone", width = 100 },
     { name = "Last Message", width = 150 },
     { name = "Date", width = 100 }
-}
-
-
--- --- Default Addon Settings ---
-HappyLog_Data.defaults = {
-    selectedSoundID = 569772, -- Default "Level Up Ding"
-    debugMode = false,
-    columnOrder = { "Name", "Guild", "Class", "Zone", "Last Message", "Date" },
 }

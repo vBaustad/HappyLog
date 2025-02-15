@@ -87,37 +87,38 @@ end
 local function handleAddonMessage(event, text, sender, ...) 
     -- Extract player data
     local name, guild, level, race, class, zone, lastMessage = strsplit(";", text)
-
-    -- Add to data if confirmed
-    local existsInConfirmedSixties = false
-    for _, confirmedName in ipairs(HappyLogDB.confirmedSixties or {}) do
-        if confirmedName == name or HappyLogDB.debug == true then
-            existsInConfirmedSixties = true
-            break
-        end
-    end
-
-    if existsInConfirmedSixties then
-        table.insert(HappyLogDB.data, {
-            name = CapitalizeFirstLetter(name),
-            guild = guild and CapitalizeFirstLetter(guild) or "No Guild",
-            class = CapitalizeFirstLetter(class),
-            zone = CapitalizeFirstLetter(zone),
-            message = lastMessage or "",
-            date = date("%b %d, %Y")
-        })
-
-        -- Update UI
-        if HappyLog.updateUI then
-            HappyLog.updateUI()
-            DebugPrint("|cffffd700[HappyLog]:|r Updated UI with new player data.")
+    C_Timer.After(5, function()
+        -- Add to data if confirmed
+        local existsInConfirmedSixties = false
+        for _, confirmedName in ipairs(HappyLogDB.confirmedSixties or {}) do
+            if confirmedName == name or HappyLogDB.debug == true then
+                existsInConfirmedSixties = true
+                break
+            end
         end
 
-        -- Play notification sound
-        PlayNotificationSound(HappyLogDB.selectedSoundID)
-    else
-        DebugPrint("|cffff0000[HappyLog]:|r Character does not exist in confirmedSixties. Ignoring message.")
-    end
+        if existsInConfirmedSixties then
+            table.insert(HappyLogDB.data, {
+                name = CapitalizeFirstLetter(name),
+                guild = guild and CapitalizeFirstLetter(guild) or "No Guild",
+                class = CapitalizeFirstLetter(class),
+                zone = CapitalizeFirstLetter(zone),
+                message = lastMessage or "",
+                date = date("%b %d, %Y")
+            })
+
+            -- Update UI
+            if HappyLog.updateUI then
+                HappyLog.updateUI()
+                DebugPrint("|cffffd700[HappyLog]:|r Updated UI with new player data.")
+            end
+
+            -- Play notification sound
+            PlayNotificationSound(HappyLogDB.selectedSoundID)
+        else
+            DebugPrint("|cffff0000[HappyLog]:|r Character does not exist in confirmedSixties. Ignoring message.")
+        end
+    end)
 end
 
 local frame = CreateFrame("Frame")
@@ -133,7 +134,7 @@ frame:SetScript("OnEvent", function(self, event, ...)
     
         -- Check if the player reached level 60
         if level == 60 then
-            print("|cffffd700[HappyLog]:|r Congratulations on reaching level 60!")  
+           DebugPrint("|cffffd700[HappyLog]:|r Congratulations on reaching level 60!")  
             C_Timer.After(5, function() end)
 
             -- Gather player information
@@ -230,6 +231,7 @@ frame:SetScript("OnEvent", function(self, event, ...)
         TrackPlayerMessage(event, ...)
     elseif event == "PLAYER_LOGIN" then
         JoinAddonChannel()
+        LoadAllSounds()
     elseif event == "ADDON_LOADED" then
         -- Call the function to create and display the minimap button
         if CreateMinimapButton then
@@ -260,15 +262,42 @@ SLASH_HAPPYLOGDEBUG1 = "/hldebug"
 SLASH_HAPPYLOGCLEARALL1 = "/hlclearall"
 SLASH_HAPPYLOGCLEARLAST1 = "/hlclearlast"
 SLASH_CONFIRMEDSIXTIES1 = "/sixties"
-SLASH_TESTLEVELUP1 = "/hllvl"
+SLASH_HAPPYLOG1 = "/hltest"
 
 
-SlashCmdList["TESTLEVELUP"] = function(level)
+SlashCmdList["HAPPYLOG"] = function()
     if HappyLogDB.debug then
-        level = tonumber(level) or 60 -- Default to level 60 if no argument is provided
-        DebugPrint("|cffffd700[Test]:|r Simulating level-up to level", level)
-        -- Trigger your level-up logic
-        frame:GetScript("OnEvent")(frame, "PLAYER_LEVEL_UP", level)
+        DebugPrint("In /hltest command. HappyLog:", HappyLog, "HappyLog.updateUI:", HappyLog.updateUI)
+
+        if not HappyLog.updateUI then
+            DebugPrint("Error: HappyLog.updateUI is nil before calling handleAddonMessage.")
+            return
+        end
+
+        local timestamp = time() -- Current Unix timestamp
+        local nonce = tostring(math.random(10000, 99999)) -- Unique random number
+
+        local testData = {
+            name = "Sinfulsally",
+            guild = "TestGuild",
+            level = 60,
+            race = "Orc",
+            class = "Warrior",
+            zone = "Orgrimmar",
+            message = "This is a test message!",
+        }
+        local serialized = string.format("%s;%s;%d;%s;%s;%s;%s;%s;%s",
+            testData.name,
+            testData.guild,
+            testData.level,
+            testData.race,
+            testData.class,
+            testData.zone,
+            testData.message,
+            timestamp,
+            nonce
+        )
+        handleAddonMessage("HappyLog", serialized, nil, "Tester")
     end
 end
 
@@ -325,18 +354,18 @@ end
 
 SlashCmdList["HAPPYLOGDEBUG"] = function(msg)
     if not HappyLogDB then
-        print("|cffff0000[HappyLog]:|r Error - HappyLogDB is not initialized.")
+       DebugPrint("|cffff0000[HappyLog]:|r Error - HappyLogDB is not initialized.")
         return
     end
     -- Toggle debug mode
     if HappyLogDB.debug then
         HappyLogDB.debug = false
-        print("|cffffd700[HappyLog]:|r Debug mode |cffff0000DISABLED|r.")
+       DebugPrint("|cffffd700[HappyLog]:|r Debug mode |cffff0000DISABLED|r.")
     else
         HappyLogDB.debug = true
-        print("|cffffd700[HappyLog]:|r Debug mode |cff00ff00ENABLED|r.")
+       DebugPrint("|cffffd700[HappyLog]:|r Debug mode |cff00ff00ENABLED|r.")
     end
 
-    -- Optional: Print the current state of HappyLogDB.debug
-    print("|cffffd700[HappyLog]:|r Current debug state:", HappyLogDB.debug and "ENABLED" or "DISABLED")
+    -- Optional:DebugPrint the current state of HappyLogDB.debug
+   DebugPrint("|cffffd700[HappyLog]:|r Current debug state:", HappyLogDB.debug and "ENABLED" or "DISABLED")
 end
