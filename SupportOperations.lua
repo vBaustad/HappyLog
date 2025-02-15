@@ -67,14 +67,17 @@ function CleanOldNonces(receivedNonces)
     end
 end
 
-function OpenSettingsPanel()   
-    if Settings and Settings.OpenToCategory then        
-        Settings.OpenToCategory(HappyLog_Settings.category.ID)
-        Settings.OpenToCategory(HappyLog_Settings.category.ID)
-    else
-        DebugPrint("|cffff0000[HappyLog]:|r No valid settings panel API found!")
+function OpenSettingsPanel()
+    if LibStub then
+        local ACD = LibStub("AceConfigDialog-3.0", true)
+        if ACD then
+            ACD:Open("HappyLog") -- Ensure "HappyLog" matches the registered name in your Ace3 options
+            return
+        end
     end
+    DebugPrint("|cffff0000[HappyLog]:|r No valid settings panel API found!")
 end
+
 
 -- Function to print the current column order with placeholders
 function PrintColumnOrder()

@@ -1,9 +1,6 @@
--- Initialize settings
-HappyLog_Settings.Initialize()
-
 local function createMainFrame()
     local mainFrame = CreateFrame("Frame", "HappyLogMainFrame", UIParent, "BackdropTemplate")
-    mainFrame:SetSize(HappyLogDB.size_x or 520, HappyLogDB.size_y or 350)
+    mainFrame:SetSize(HappyLogDB.size_x or 350, HappyLogDB.size_y or 150)
 
     -- Enable clipping for child frames
     mainFrame:SetClipsChildren(true)
@@ -485,7 +482,6 @@ end
 
 -- Initialize UI
 local function initializeUI()
-    -- Ensure columns are initialized
     if not HappyLog.columns or type(HappyLog.columns) ~= "table" then
         DebugPrint("HappyLog.columns is nil or invalid! Restoring defaults.")
         HappyLog.columns = CopyTable(HappyLogDB.columns or HappyLog_Data.columns)
@@ -509,18 +505,35 @@ local function initializeUI()
         toggleButton:SetText("-")
     end
 
-    -- Define updateUI to refresh the data
     HappyLog.updateUI = function()
-        -- Refresh headers
-        if mainFrame.headerFrame then
-            headerFrame:Hide()
-            headerFrame:SetParent(nil)
-        end
-        headerFrame = createHeaderFrame(mainFrame)
+       DebugPrint("|cFF00FF00[HappyLog] updateUI() is running!|r")
     
-        -- Refresh rows     
+        if not mainFrame then
+           DebugPrint("|cFFFF0000[HappyLog] ERROR: mainFrame does not exist!|r")
+            return
+        end
+    
+        if not HappyLogDB.data then
+           DebugPrint("|cFFFF0000[HappyLog] ERROR: No data to update UI with!|r")
+            return
+        end
+    
+        if mainFrame.headerFrame then
+           DebugPrint("|cFFFFA500[HappyLog] Refreshing header frame...|r")
+            mainFrame.headerFrame:Hide()
+            mainFrame.headerFrame:SetParent(nil)
+        end
+    
+       DebugPrint("|cFFFFA500[HappyLog] Recreating header frame...|r")
+        mainFrame.headerFrame = createHeaderFrame(mainFrame)
+    
+       DebugPrint("|cFFFFA500[HappyLog] Refreshing row entries...|r")
         setupRowEntries(mainFrame, HappyLogDB.data)
+    
+       DebugPrint("|cFF00FF00[HappyLog] UI update completed!|r")
     end
+    
+    
     HappyLog.updateUI()
 end
 
@@ -529,8 +542,21 @@ local eventFrame = CreateFrame("Frame")
 eventFrame:RegisterEvent("PLAYER_LOGIN")
 eventFrame:SetScript("OnEvent", function()    
     initializeUI() -- Initialize UI after the player logs in
-    -- Initialize settings
-    HappyLog_Settings.Initialize()
-    HappyLog_Settings.createSettingsPanel()
+    
+    -- Ensure `updateUI` exists before calling settings
+    if not HappyLog.updateUI then
+       DebugPrint("|cFFFF0000[HappyLog] ERROR: updateUI is still nil after initializeUI()! Retrying in 1 sec...|r")
+        C_Timer.After(1, function()
+            if HappyLog.updateUI then
+               DebugPrint("|cFF00FF00[HappyLog] updateUI is now available. Initializing settings.|r")
+                HappyLog_Settings.Initialize()
+            else
+               DebugPrint("|cFFFF0000[HappyLog] ERROR: updateUI is still nil after retry!|r")
+            end
+        end)
+    else
+       DebugPrint("|cFF00FF00[HappyLog] updateUI is available. Initializing settings.|r")
+        HappyLog_Settings.Initialize()
+    end
 end)
 
